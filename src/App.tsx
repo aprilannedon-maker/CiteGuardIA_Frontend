@@ -32,7 +32,8 @@ interface PaperResult {
 
       const cleanDoi = doi.trim().replace(/^https?:\/\/(www\.)?doi\.org\//i, '');
 
-     const res = await axios.get(`https://localhost:7074/api/verify?doi=${cleanDoi}`);
+      const API_URL = import.meta.env.VITE_API_URL || "https://citeguardia-backend.onrender.com";
+      const res = await axios.get(`${API_URL}/api/verify?doi=${encodeURIComponent(cleanDoi)}`);
 
     const data = res.data.message;
     const containerTitle = data['container-title']?.[0] || '';
