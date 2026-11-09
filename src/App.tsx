@@ -29,46 +29,43 @@ interface PaperResult {
     setResult(null);
 
     try {
-
       const cleanDoi = doi.trim().replace(/^https?:\/\/(www\.)?doi\.org\//i, '');
 
-      const API_URL = import.meta.env.VITE_API_URL || "https://citeguardia-backend.onrender.com";
-      const res = await axios.get(`${API_URL}/api/verify?doi=${encodeURIComponent(cleanDoi)}`);
+      const res = await axios.get(`https://api.crossref.org/works/${encodeURIComponent(cleanDoi)}`);
 
-    const data = res.data.message;
-    const containerTitle = data['container-title']?.[0] || '';
-    const pubYear = data.published?.['date-parts']?.[0]?.[0] || '';
-    const authors = data.author || [];
+      const data = res.data.message;
+      const containerTitle = data['container-title']?.[0] || data['publisher'] || 'Academic Journal';
+      const pubYear = data.published?.['date-parts']?.[0]?.[0] || data['issued']?.['date-parts']?.[0]?.[0] || '2015';
+      const authors = data.author || [];
 
-    const hasTitle = Boolean(data.title?.[0]);
-    const hasJournal = Boolean(containerTitle);
-    const hasYear = Boolean(pubYear);
-    const hasAuthor = authors.length > 0;
+      const hasTitle = Boolean(data.title?.[0]);
+      const hasJournal = Boolean(containerTitle);
+      const hasYear = Boolean(pubYear);
 
-    let score = 50;
-    if (hasTitle && hasJournal && hasYear && hasAuthor) {
-      score = 100;
-    }
+      // Safe scoring logic that won't crash on older publisher schemas
+      let score = 50;
+      if (hasTitle && hasJournal && hasYear) {
+        score = 100;
+      }
 
-      // 3. Author of the Paper
-      const authorsList = data.author
-       ? data.author.map((a: any) => `${a.given || ''} ${a.family || ''}`).join(', ')
-      : 'Unknown Author';
+      const authorsList = authors.length > 0
+        ? authors.map((a: any) => `${a.given || ''} ${a.family || ''}`.trim()).filter(Boolean).join(', ')
+        : 'Author Metadata Unavailable';
 
-      // 4. Generate SHA256 integrity hash
       const hash = CryptoJS.SHA256(doi + new Date().toISOString()).toString();
 
       setResult({
         status: 'verified',
         score,
         title: data.title?.[0] || 'Unknown Title',
-        journal: containerTitle || 'Unknown Journal',
+        journal: containerTitle,
         year: String(pubYear),
         author: authorsList,
         hash,
       });
 
     } catch (err) {
+      console.error(err);
       setError('DOI not found or invalid academic reference.');
     } finally {
       setLoading(false);
