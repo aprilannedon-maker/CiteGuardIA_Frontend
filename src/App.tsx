@@ -41,10 +41,11 @@ interface PaperResult {
       const hasTitle = Boolean(data.title?.[0]);
       const hasJournal = Boolean(containerTitle);
       const hasYear = Boolean(pubYear);
+      const hasAuthor = authors.length > 0;
 
-      // Safe scoring logic that won't crash on older publisher schemas
+      // Defaults to 50. Only hits 100 if ALL required fields are present.
       let score = 50;
-      if (hasTitle && hasJournal && hasYear) {
+      if (hasTitle && hasJournal && hasYear && hasAuthor) {
         score = 100;
       }
 
